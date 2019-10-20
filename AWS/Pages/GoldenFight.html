@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GoldenFight Console</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      /* Optional: Makes the page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+    <script>
+        var context = null
+        var goldenfight_history = null
+        var one_hour_in_ms = 60 * 60 * 1000
+        var start = new Date() - one_hour_in_ms * 24 * 5
+        var end = new Date()
+
+        class Dataset{
+            constructor(data, label){
+                this.fill = false;
+                this.data = data;
+                this.label = label;
+                this.borderColor = '#fe8b36';
+                this.backgroundColor = '#fe8b36';
+                this.lineTension = 0;
+            }
+        }
+
+        class GoldenFightHistory{
+            constructor(sid, context) {
+                this.sid = sid;
+                this.context = context;
+                this.data = new Array();
+            }
+
+            build_chart(){
+                var $data = {
+                    datasets: [{
+                        label: 'History',
+                        fill: false,
+                        data: [],
+                        borderColor: '#fe8b36',
+                        backgroundColor: '#fe8b36',
+                        lineTension: 0,
+                    }]
+                }
+
+                var $chart_def = {
+                    type: 'line',
+                    data: $data,
+                    options: {
+                        legend: {
+                            display: false,
+                            position: 'right'
+                        },
+                        responsive: false,
+                        title: {
+                            display: true,
+                            text: "History"
+                        },
+                        scales: {
+                            xAxes: [{
+                                type: 'time',
+                                display: true,
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: "Date & Time"
+                                }
+                            }],
+                            yAxes: [{
+                                ticks: {
+                                    beginAtZero: true
+                                },
+                                display: true,
+                                scaleLabel:{
+                                    display: true,
+                                    labelString: "Weight"
+                                }
+                            }]
+                        }
+                    }
+                }
+
+
+                var chart = new Chart(
+                    this.context,
+                    $chart_def,
+                );
+
+                this.chart = chart;
+            }
+        }
+
+        function update_chart(goldenfight_history){
+            var $chart_data = new Array();
+            var $datasets = new Array();
+            var $data = new Array();
+
+            goldenfight_history.data.forEach(function (datum, datum_index){
+                var timestamp = new Date(datum['TRUNK'])
+                var raw_scale_value = JSON.parse(datum['SCALE'])
+                var $ob = {x: timestamp, y: raw_scale_value}
+                $chart_data.push($ob)
+            })
+
+            var $dataset = new Dataset($chart_data, "GoldenFight Scale")
+            goldenfight_history.chart.data.datasets = [$dataset]
+            goldenfight_history.chart.update()
+        }
+
+
+        function merge_data(gfh, new_data){
+            // Assume GFH data is sorted, merge new_data
+            gfh.data = gfh.data.concat(new_data)
+            gfh.data.sort(function(d1, d2){
+                if (d1['TRUNK'] > d2['TRUNK']){
+                    return -1
+                }
+                if (d2['TRUNK'] > d1['TRUNK']){
+                    return 1
+                }
+                return 0
+            })
+        }
+
+        $(document).ready(function(){
+            var ws = new WebSocket("wss://8pp64nk6vl.execute-api.us-east-1.amazonaws.com/prod")
+
+            context = document.getElementById('chart').getContext('2d');
+
+            goldenfight_history = new GoldenFightHistory(sid="goldenfight_scale", context)
+            goldenfight_history.build_chart()
+
+            ws.onopen = function () {
+                var trunk = new Date()
+                trunk.setTime(trunk.getTime() - (3 * one_hour_in_ms))
+
+                data = JSON.stringify({
+                    "action": "request",
+                    "REQUEST_TREE": "goldenfight_status",
+                    "REQUEST_ROOT": trunk.toISOString(),
+                    "Limit": 1
+                })
+                ws.send(data)
+            }
+
+            ws.onmessage = function (event) {
+                var event_data = JSON.parse(event.data)
+                if (event_data[0]["TREE"] === "goldenfight_status"){
+                    document.getElementById("status").innerHTML = event_data[0]["STATUS"]
+                    var trunk = new Date()
+                    trunk.setTime(trunk.getTime() - (3 * 24 * one_hour_in_ms))
+                    data = JSON.stringify({
+                        "action": "request",
+                        "REQUEST_TREE": "goldenfight_scale",
+                        "REQUEST_ROOT": trunk.toISOString()
+                    })
+                    ws.send(data)
+                }
+                if (event_data[0]['TREE'] === "goldenfight_scale"){
+                    merge_data(goldenfight_history, event_data)
+                    update_chart(goldenfight_history)
+                }
+            }
+        });
+    </script>
+
+</head>
+    <body>
+
+        <h1>GoldenFight Console</h1>
+
+        <h2>{message}</h2>
+
+        <div id="status"><h3>Offline</h3></div>
+
+        <br>
+
+        <!-- Current Value, Device Interface Settings -->
+        <div id="current_value"><h3>0.0</h3></div><button type="button" id="Aggregate"></button><br>
+        <button type="button" id="zero_scale">Zero Scale</button>Calibration: <input type="number" id="calibration">
+        <select>
+          <option value="lbs">lbs</option>
+          <option value="kg">kg</option>
+        </select><br><br>
+
+        <!-- Network Information -->
+        <form action="network" method="post">
+          SSID: <input type="text" name="ssid" id="ssid"><br>
+          Password: <input type="text" name="network_password" id="network_password"><br>
+          <button type="submit">Submit</button>
+        </form>
+
+        <br><br>
+
+        <!-- Historical Information -->
+        History for <input type="number" name="hours_ago" id="hours_ago"> hours ago<br>
+
+        <canvas id="chart" width=600, height=400></canvas>
+
+        <br><br>
+
+
+    </body>
+</html>

@@ -1,0 +1,27 @@
+<!doctype html>
+
+<html lang="en">
+    <head>
+        <title>GoldenFight Aggregation</title>
+    </head>
+
+    <body>
+        <h1>Welcome! GoldenFight Aggregation</h1><br>
+        <h2>{message}</h2><br>
+
+        <form action="/aggregate_clear" method="post">
+            <input type="submit" value="Clear Aggregated Weight">
+        </form>
+        <form action="aggregate_tare" method="post">
+            <input type="submit" value="Tare Scale">
+        </form>
+        <iframe src="/scale_reader.html" frameborder="0"></iframe>
+        <h1>Aggregated Weight: {aggregated_value}</h1><br>
+        <form action="/aggregate_next" method="post">
+            <input type="submit" value="Next Weight">
+        <form>
+        <br><br>
+        <iframe src="/mode_menu.html" frameborder="0"></iframe>
+    </body>
+</html>
+

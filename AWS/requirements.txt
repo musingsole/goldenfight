@@ -1,0 +1,7 @@
+pytz
+boto3
+LambdaPage
+warrant
+bs4
+requests
+requests-aws-sign

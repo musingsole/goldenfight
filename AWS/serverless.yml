@@ -1,0 +1,283 @@
+service: goldenfight
+package:
+  individually: false
+
+provider:
+  name: aws
+  stage: prod
+  runtime: python3.6
+  region: us-east-1
+  websocketApiName: goldenfight
+  websocketApiRouteSelectionExpression: $request.body.action
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+    noDeploy: []
+
+resources:
+  Resources:
+    GoldenFightTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: GoldenFight
+        AttributeDefinitions:
+          - AttributeName: TREE
+            AttributeType: S
+          - AttributeName: TRUNK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: TREE
+            KeyType: HASH
+          - AttributeName: TRUNK
+            KeyType: RANGE
+        ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+
+    GoldenFightWebAppRole:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /goldenfightwebapp/
+        RoleName: GoldenFightWebAppRole
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: GoldenFightWebSocketPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - execute-api:*
+                    - apigateway:Get
+                    - api:*
+                    - iot:*
+                  Resource: "*"
+
+                - Effect: Allow
+                  Action:
+                    - logs:*
+                  Resource: "arn:aws:logs:*:*:*"
+
+          - PolicyName: GoldenFightWebAppPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - lambda:InvokeFunction
+                    - sqs:ListQueueTags
+                    - sqs:GetQueueUrl
+                    - sqs:GetQueueAttributes
+                    - sqs:SetQueueAttributes
+                    - sqs:SendMessage
+                    - sqs:SendMessagebatch
+                    - dynamodb:DescribeTable
+                    - dynamodb:Query
+                    - dynamodb:Scan
+                    - dynamodb:GetItem
+                    - dynamodb:PutItem
+                    - dynamodb:BatchWriteItem
+                  Resource: "*"
+
+                - Effect: Allow
+                  Action:
+                    - logs:*
+                  Resource: "arn:aws:logs:*:*:*"
+
+    GoldenFightWebAppLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/GoldenFightWebApp
+        RetentionInDays: 1
+
+    GoldenFightOTALogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/GoldenFightOTA
+        RetentionInDays: 1
+
+    GoldenFightWebSocketUploadLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/GoldenFightWebSocketUpload
+        RetentionInDays: 1
+
+    GoldenFightWebSocketConnectLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/GoldenFightWebSocketConnect
+        RetentionInDays: 1
+
+    GoldenFightWebSocketDefaultLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/GoldenFightWebSocketDefault
+        RetentionInDays: 1
+
+    GoldenFightWebSocketDisconnectLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/GoldenFightWebSocketDisconnect
+        RetentionInDays: 1
+
+    GoldenFightWebSocketRequestLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/GoldenFightWebSocketRequest
+        RetentionInDays: 1
+
+    GoldenFightWebSocketUnsubscribeLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/GoldenFightWebSocketUnsubscribe
+        RetentionInDays: 1
+
+    GoldenFightWebSocketServiceRequestLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/GoldenFightWebSocketServiceRequest
+        RetentionInDays: 1
+
+
+functions:
+  GoldenFightWebApp:
+    name: GoldenFightWebApp
+    handler: GoldenFightWebApp.lambda_handler
+    description: Provide a web based app to interact with GoldenFight system
+    memorySize: 128
+    timeout: 30
+    role:
+      Fn::GetAtt:
+        - GoldenFightWebAppRole
+        - Arn
+    events:
+      - http:
+          path: /webapp
+          method: get
+      - http:
+          path: /webapp
+          method: post
+      - http:
+          path: /webapp/device_submit
+          method: post
+      - http:
+          path: /webapp/network_submit
+          method: post
+
+
+  GoldenFightOTA:
+    name: GoldenFightOTA
+    handler: GoldenFightOTACloud.lambda_handler
+    description: Provide endpoint for download most up to date firmware
+    memorySize: 128
+    timeout: 30
+    role:
+      Fn::GetAtt:
+        - GoldenFightWebAppRole
+        - Arn
+    events:
+      - http:
+          path: /ota
+          method: get
+      - http:
+          path: /ota/{filename}
+          method: get
+
+
+  GoldenFightWebSocketDefault:
+    name: GoldenFightWebSocketDefault
+    handler: GoldenFightWebSocket.lambda_handler
+    memorySize: 128
+    timeout: 30
+    events:
+      - websocket:
+          route: $default
+
+  GoldenFightWebSocketConnect:
+    name: GoldenFightWebSocketConnect
+    handler: GoldenFightWebSocket.lambda_handler
+    memorySize: 128
+    timeout: 30
+    role:
+      Fn::GetAtt:
+        - GoldenFightWebAppRole
+        - Arn
+    events:
+      - websocket:
+          route: $connect
+
+  GoldenFightWebSocketDisconnect:
+    name: GoldenFightWebSocketDisconnect
+    handler: GoldenFightWebSocket.lambda_handler
+    memorySize: 128
+    timeout: 30
+    role:
+      Fn::GetAtt:
+        - GoldenFightWebAppRole
+        - Arn    
+    events:
+      - websocket:
+          route: $disconnect
+
+  GoldenFightWebSocketRequest:
+    name: GoldenFightWebSocketRequest
+    handler: GoldenFightWebSocket.lambda_handler
+    memorySize: 128
+    timeout: 30
+    role:
+      Fn::GetAtt:
+        - GoldenFightWebAppRole
+        - Arn    
+    events:
+      - websocket:
+          route: request
+
+  GoldenFightWebSocketUpload:
+    name: GoldenFightWebSocketUpload
+    handler: GoldenFightWebSocket.lambda_handler
+    memorySize: 128
+    timeout: 30
+    role:
+      Fn::GetAtt:
+        - GoldenFightWebAppRole
+        - Arn    
+    events:
+      - websocket:
+          route: upload
+
+  GoldenFightWebSocketUnsubscribe:
+    name: GoldenFightWebSocketUnsubscribe
+    handler: GoldenFightWebSocket.lambda_handler
+    memorySize: 128
+    timeout: 30
+    role:
+      Fn::GetAtt:
+        - GoldenFightWebAppRole
+        - Arn    
+    events:
+      - websocket:
+          route: unsubscribe
+
+  GoldenFightWebSocketServiceRequest:
+    name: GoldenFightWebSocketServiceRequest
+    handler: GoldenFightWebSocket.lambda_handler
+    memorySize: 128
+    timeout: 30
+    role:
+      Fn::GetAtt:
+        - GoldenFightWebAppRole
+        - Arn    
+    events:
+      - websocket:
+          route: service

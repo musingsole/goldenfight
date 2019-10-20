@@ -1,0 +1,21 @@
+<!doctype html>
+
+<html lang="en">
+    <head>
+        <title>GoldenFight Adjustment Menu</title>
+    </head>
+
+    <body>
+        <p>Adjustment Menu<p>
+        <form action="/tare" method="post" target="_parent">
+            <input type="submit" value="Set current scale weight to 0 (tare scale)">
+        </form>
+        <form action="/calibrate" method="post" target="_parent">
+            Enter current weight on scale to calibrate:<br>
+            <input type="float" name="calibration_value", value={current_value}>
+            <input type="text" name="calibration_unit", value="{calibration_unit}">
+            <input type="submit" value="Calibrate">
+        </form>
+    </body>
+</html>
+
