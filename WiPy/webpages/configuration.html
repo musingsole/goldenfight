@@ -5,30 +5,29 @@
         <title>GoldenFight Configuration</title>
     </head>
     
-    <body>
-        <h1>GoldenFight Configuration</h1><br>
+    <body style="background-color:#77dd77; font-size: larger">
+        <h1>GoldenFight Configuration</h1>
         <h2>{message}</h2><br>
-        <br><br>
 
-        <iframe src="/scale_reader.html" frameborder="0"></iframe>
+        <iframe src="/scale_reader.html" frameborder="0"
+                style="width: 100%; height: 100px">
+        </iframe>
         <h2>Current Configuration</h2>
-        <h3>Datetime:           {datetime}</h3>
-	<h3>Tare Point:         {tare_point}</h3>
-	<h3>Calibration Factor: {calibration_factor}</h3>
-        <br><br>
-        <iframe src="/adjustment_menu.html" frameborder="0" style="width:100%"></iframe>
-        <br><br>
+        <!-- <h3>Datetime:           {datetime}</h3> -->
+        <h3>Tare Point:         {tare_point}</h3>
+        <h3>Calibration Factor: {calibration_factor}</h3>
+        <iframe src="/adjustment_menu.html" frameborder="0"
+                style="width: 100%; height: 175px">
+        </iframe>
 
         <h2>Connect GoldenFight to WiFi</h2>
-      	GoldenFight will use WiFi connection to check for firmware updates<br>
-        <form action="/update" method="post">
+        GoldenFight will use WiFi connection to check for firmware updates<br>
+        <form action="/update" method="post" style="font-size: large">
             WiFi SSID: <input type="text" name="ssid"><br>
             WiFi Password: <input type="password" name="password"><br>
             <input type="submit" value="Submit">
-        </form>
-        <br><br>
+        </form><br>
 
         <iframe src="/mode_menu.html" frameborder="0"></iframe>
     </body>
 </html>
-

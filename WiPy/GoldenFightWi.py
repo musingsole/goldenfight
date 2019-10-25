@@ -42,25 +42,25 @@ class GoldenFight(dict):
 
         # Build Scale
         self.scale = Scale()
-    
+
         self.FLASHING_LIGHT.colors = [LED_GREEN, LED_BLUE] + [LED_OFF] * 4
 
         print("Recovering or building memory system")
         try:
             with open("woodwell", "r") as f:
                 self.woodwell = woodwell(name='woodwell', woodwell=f.read())
-        except Exception as e:
+        except Exception:
             print("Failed to recover woodwell. Building new memory")
             self.woodwell = woodwell('woodwell')
             self.save_woodwell()
-    	
+
         print("Recovering configuration")
         self.calibration_factor()
         self.calibration_unit()
         self.tare_point()
         self.aggregated()
         self.ssid()
-        self.password()    
+        self.password()
 
         self.FLASHING_LIGHT.colors = [LED_GREEN, LED_BLUE] + [LED_OFF] * 3
 
@@ -81,7 +81,7 @@ class GoldenFight(dict):
             if len(mems) == 0 and default is not None:
                 mems = [Memory(TREE=tree, TRUNK='attribute', VALUE=default)]
                 self.woodwell.memorize(mems)
-                self.save_woodwell() 
+                self.save_woodwell()
             current = mems[0]['VALUE']
             if return_filter is not None:
                 current = return_filter(current)
@@ -91,13 +91,14 @@ class GoldenFight(dict):
             self.woodwell.memorize([new_mem])
             self.save_woodwell()
 
-    ## Attribute interface functions
+    # Attribute interface functions
 
     def calibration_factor(self, new=None):
         return self.attribute(
             'calibration_factor',
             new,
             default=1)
+
     def calibration_unit(self, new=None):
         return self.attribute(
             'calibration_unit',
@@ -107,10 +108,10 @@ class GoldenFight(dict):
 
     def tare_point(self, new=None):
         return self.attribute('tare_point', new, default=0)
-	
+
     def aggregated(self, new=None):
         return self.attribute('aggregated', new, default=0)
-	
+
     def ssid(self, new=None):
         return self.attribute(
             'ssid',
@@ -125,7 +126,7 @@ class GoldenFight(dict):
             default='musingsole',
             return_filter=None)
 
-    ## Scale Functions
+    # Scale Functions
 
     def get_scale_reading(self, samples=5, attempts=5):
         while attempts > 0:
@@ -160,7 +161,7 @@ class GoldenFight(dict):
 
         return current_value
 
-    ## Webpage Support Functions
+    # Webpage Support Functions
 
     def get_page(self, path):
         with open(path, 'r') as f:
@@ -171,9 +172,9 @@ class GoldenFight(dict):
         path = "webpages/configuration.html"
         page = self.get_page(path)
         page = page.replace("{message}", msg)
-        
+
         page = page.replace("{current_value}", "{:.2f}".format(self.get_current_reading()))
-        page = page.replace("{calibration_unit}", str(self.calibration_unit())) 
+        page = page.replace("{calibration_unit}", str(self.calibration_unit()))
         page = page.replace("{tare_point}", str(self.tare_point()))
         page = page.replace("{calibration_factor}", str(self.calibration_factor()))
         return page
@@ -185,28 +186,28 @@ class GoldenFight(dict):
 
         page = page.replace("{current_value}", "{:.2f}".format(self.get_current_reading()))
 
-        page = page.replace("{next_weight_ready}", "No") 
-        page = page.replace("{aggregated_value}", str(self.aggregated())) 
+        page = page.replace("{next_weight_ready}", "No")
+        page = page.replace("{aggregated_value}", str(self.aggregated()))
         return page
 
     def build_scale_page(self, msg=""):
         path = "webpages/scale.html"
         page = self.get_page(path)
         page = page.replace("{message}", msg)
-        page = page.replace("{current_value}", "{:.2f}".format(self.get_current_reading())) 
-        page = page.replace("{calibration_unit}", str(self.calibration_unit())) 
+        page = page.replace("{current_value}", "{:.2f}".format(self.get_current_reading()))
+        page = page.replace("{calibration_unit}", str(self.calibration_unit()))
         return page
 
     @staticmethod
     def mode_from_body(body):
         if 'configuration' in body:
-           return 'configuration' 
+            return 'configuration'
         elif 'aggregate' in body:
-           return 'aggregate'
+            return 'aggregate'
         else:
-           return 'scale'
-       
-    ## Webpage Endpoint Functions
+            return 'scale'
+
+    # Webpage Endpoint Functions
     def adjustment_menu(self, request):
         with open('webpages/adjustment_menu.html', 'r') as f:
             page = f.read()
@@ -239,7 +240,7 @@ class GoldenFight(dict):
                 page = self.build_aggregate_page()
             else:
                 page = self.build_scale_page()
-       
+
             return build_response(body=page)
         except Exception as e:
             print("Mode Endpoint Failed")
@@ -249,7 +250,7 @@ class GoldenFight(dict):
     def tare(self, request):
         reading = self.get_scale_reading(samples=20)
         print("Read {}. Setting as new tare point".format(reading))
-        self.tare_point(new=reading) 
+        self.tare_point(new=reading)
         print("New tare point: {}".format(self.tare_point()))
 
         return build_response(body=self.build_configuration_page())
@@ -258,7 +259,6 @@ class GoldenFight(dict):
         req_body = request['body']
         print("Calibrating with {}".format(req_body))
         try:
-           
             value, unit = req_body.split("&")
             value = float(value.split("=")[1])
             unit = unit.split("=")[1]
@@ -280,8 +280,8 @@ class GoldenFight(dict):
     def update(self, request):
         print("Not implemented")
         return build_response(body=self.build_configuration_page())
-    
-    ## Aggregation Functions
+
+    # Aggregation Functions
 
     def aggregate_next(self, request):
         print("Original Aggregated: {}".format(self.aggregated()))
@@ -300,14 +300,14 @@ class GoldenFight(dict):
     def aggregate_tare(self, reqeust):
         try:
             scale_reading = self.get_scale_reading(samples=20)
-            self.tare_point(new=scale_reading) 
+            self.tare_point(new=scale_reading)
         except Exception as e:
             print("Failed to tare device (aggregate)")
             print_exception(e)
 
         return build_response(body=self.build_aggregate_page())
 
-    ## Functional Webapp Endpoints (return data, not pages)
+    # Functional Webapp Endpoints (return data, not pages)
 
     def current_scale_value(self, request):
         return build_response(body=str(self.get_scale_reading()))
@@ -323,10 +323,10 @@ class GoldenFight(dict):
         return build_response(body=json.dumps(memories))
 
     def provide_jquery(self, request):
-         js = self.get_page("webpage/jquery.min.js")
-         return build_response(
-             body=js,
-             content_type="text/javascript")
+        js = self.get_page("webpage/jquery.min.js")
+        return build_response(
+            body=js,
+            content_type="text/javascript")
 
     def http_daemon(self, log=print):
         path_to_handler = {
