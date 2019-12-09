@@ -1,5 +1,9 @@
-from time import sleep_ms
+from time import sleep
 import RPi.GPIO as GPIO
+
+
+def sleep_ms(x):
+    sleep(x / 1000)
 
 
 class Scale:
@@ -31,7 +35,7 @@ class Scale:
         GPIO.output(clock_pin, GPIO.LOW)
 
     def read(self):
-        self.clk.value(0)
+        GPIO.output(self.clock_pin, GPIO.LOW)
 
         wait_iterations = 0
         while wait_iterations < 100 and self.data.value() != 0:
