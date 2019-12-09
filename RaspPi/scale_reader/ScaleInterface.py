@@ -34,11 +34,17 @@ class Scale:
         GPIO.setup(data_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
         GPIO.output(clock_pin, GPIO.LOW)
 
-    def read(self):
+    def read_data(self):
+        return GPIO.input(self.data_pin)
+
+    def clock(self):
+        GPIO.output(self.clock_pin, GPIO.LOW)
+        GPIO.output(self.clock_pin, GPIO.HIGH)
         GPIO.output(self.clock_pin, GPIO.LOW)
 
+    def read(self):
         wait_iterations = 0
-        while wait_iterations < 100 and self.data.value() != 0:
+        while wait_iterations < 100 and self.read_data() != 0:
             wait_iterations += 1
             sleep_ms(1)
 
@@ -48,15 +54,12 @@ class Scale:
         # Retrieve ADC Reading
         observation = []
         for i in range(self.data_cycles):
-            GPIO.output(self.clock_pin, GPIO.HIGH)
-            GPIO.output(self.clock_pin, GPIO.LOW)
-
-            observation.append(GPIO.input(self.data_pin))
+            self.clock()
+            observation.append(self.read_data())
 
         # Set ADC Gain for next reading
         for i in range(self.gain):
-            GPIO.output(self.clock_pin, GPIO.HIGH)
-            GPIO.output(self.clock_pin, GPIO.LOW)
+            self.clock()
 
         ob_string = ''.join([str(i) for i in observation])
         ob_value = self.twosbinarystring_to_integer(ob_string, bits=self.data_cycles)
