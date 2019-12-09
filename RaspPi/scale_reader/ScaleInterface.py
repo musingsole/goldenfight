@@ -2,10 +2,6 @@ from time import sleep
 import RPi.GPIO as GPIO
 
 
-def sleep_ms(x):
-    sleep(x / 1000)
-
-
 class Scale:
     """ A Class to represent SparkFun's HX711 Scale """
 
@@ -31,22 +27,22 @@ class Scale:
 
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(clock_pin, GPIO.OUT)
-        GPIO.setup(data_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.setup(data_pin, GPIO.IN)
         GPIO.output(clock_pin, GPIO.LOW)
 
     def read_data(self):
         return GPIO.input(self.data_pin)
 
     def clock(self):
-        GPIO.output(self.clock_pin, GPIO.LOW)
         GPIO.output(self.clock_pin, GPIO.HIGH)
         GPIO.output(self.clock_pin, GPIO.LOW)
 
     def read(self):
+        GPIO.output(self.clock_pin, GPIO.LOW)
         wait_iterations = 0
         while wait_iterations < 100 and self.read_data() != 0:
             wait_iterations += 1
-            sleep_ms(1)
+            sleep(0.001)
 
         if wait_iterations >= 100:
             raise Exception("ADC Communication Failure")
