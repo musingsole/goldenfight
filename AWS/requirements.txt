@@ -5,3 +5,5 @@ warrant
 bs4
 requests
 requests-aws-sign
+murd
+websocket-client

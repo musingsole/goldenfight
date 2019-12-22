@@ -1,11 +1,11 @@
 from urllib.parse import parse_qs
 from bs4 import BeautifulSoup
 from LambdaPage import LambdaPage
-from DDBMemory import DynamoTreeMemory, TIME_FORMAT
+from HTTPS.murd_ddb import murd_ddb
 from datetime import datetime, timedelta
 
 
-memory = DynamoTreeMemory("GoldenFight")
+memory = murd_ddb("GoldenFight")
 
 
 ###############################################################################

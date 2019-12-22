@@ -1,0 +1,74 @@
+service: ddbmurdapiws
+package:
+  individually: false
+
+provider:
+  name: aws
+  stage: prod
+  runtime: python3.6
+  region: us-east-1
+
+plugins:
+  - serverless-python-requirements
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+    noDeploy: []
+
+resources:
+  Resources:
+    MurdRole:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /murd/
+        RoleName: MurdWSRole
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: murdPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - logs:*
+                    - execute-api:*
+                    - apigateway:Get
+                    - api:*
+                    - dynamodb:*
+                  Resource: "*"
+  
+functions:
+  ddbmurdapiws:
+    name: ddbmurdapiws
+    handler: murd_ddb_ws_api.lambda_handler
+    memorySize: 128
+    timeout: 30
+    role:
+      Fn::GetAtt:
+        - MurdRole
+        - Arn
+    events:
+      - websocket:
+          route: $connect
+      - websocket:
+          route: $default
+      - websocket:
+          route: read
+      - websocket:
+          route: upload
+      - websocket:
+          route: delete
+      - websocket:
+          route: $disconnect
+      - schedule:
+          rate: rate(1 minute)
+          enabled: true
+          input:
+            serve_subscribers: true
