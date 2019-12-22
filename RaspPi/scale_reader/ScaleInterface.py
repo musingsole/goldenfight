@@ -18,8 +18,8 @@ class Scale:
     def __init__(self,
                  gain=1,
                  data_cycles=24,
-                 clock_pin=8,
-                 data_pin=10):
+                 clock_pin=11,
+                 data_pin=12):
         self.gain = gain
         self.data_cycles = data_cycles
         self.clock_pin = clock_pin
